@@ -1,6 +1,8 @@
 package ru.netology.nmedia.api
 
 import android.content.SharedPreferences
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.firebase.installations.FirebaseInstallations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,6 +30,7 @@ class ApiModule {
         if (BuildConfig.DEBUG) {
             level = HttpLoggingInterceptor.Level.BODY
         }
+    }
 
         @Singleton
         @Provides
@@ -46,7 +49,7 @@ class ApiModule {
                 chain.proceed(chain.request())
             }
             .build()
-    }
+
 
     @Singleton
     @Provides
@@ -59,4 +62,10 @@ class ApiModule {
     @Singleton
     @Provides
     fun provideApiService(retrofit: Retrofit): ApiService = retrofit.create()
+
+    @Singleton
+    @Provides
+    fun googleApiAvailability() : GoogleApiAvailability {
+        return GoogleApiAvailability.getInstance()
+    }
 }

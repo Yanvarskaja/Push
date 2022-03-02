@@ -15,6 +15,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
+import ru.netology.nmedia.api.ApiService
 import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.viewmodel.AuthViewModel
 import javax.inject.Inject
@@ -26,6 +27,15 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
 
     @Inject
     lateinit var appAuth: AppAuth
+
+    @Inject
+    lateinit var firebaseInstallations: FirebaseInstallations
+
+    @Inject
+    lateinit var firebaseMessaging: FirebaseMessaging
+
+    @Inject
+    lateinit var googleApiAvailability: GoogleApiAvailability
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +64,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
             invalidateOptionsMenu()
         }
 
-        FirebaseInstallations.getInstance().id.addOnCompleteListener { task ->
+        firebaseInstallations.id.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
                 println("some stuff happened: ${task.exception}")
                 return@addOnCompleteListener
@@ -64,7 +74,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
             println(token)
         }
 
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+        firebaseMessaging.token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
                 println("some stuff happened: ${task.exception}")
                 return@addOnCompleteListener
@@ -109,7 +119,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
     }
 
     private fun checkGoogleApiAvailability() {
-        with(GoogleApiAvailability.getInstance()) {
+        with(googleApiAvailability) {
             val code = isGooglePlayServicesAvailable(this@AppActivity)
             if (code == ConnectionResult.SUCCESS) {
                 return@with
