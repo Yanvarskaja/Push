@@ -8,19 +8,29 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.coroutineScope
 import androidx.navigation.fragment.findNavController
+import androidx.paging.LoadState
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import ru.netology.nmedia.R
 import ru.netology.nmedia.adapter.OnInteractionListener
 import ru.netology.nmedia.adapter.PostsAdapter
+import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.databinding.FragmentFeedBinding
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.PostViewModel
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class FeedFragment : Fragment() {
     private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
+
+    @Inject
+    lateinit var appAuth: AppAuth
+    lateinit var authViewModel: AuthViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -64,17 +74,34 @@ class FeedFragment : Fragment() {
                     .show()
             }
         }
-        viewModel.data.observe(viewLifecycleOwner) { state ->
-            adapter.submitList(state.posts)
-            binding.emptyText.isVisible = state.empty
+
+        viewLifecycleOwner.lifecycle.coroutineScope.launchWhenCreated {
+            viewModel.data.collectLatest {
+                adapter.submitData(it)
+            }
         }
-        viewModel.newerCount.observe(viewLifecycleOwner) { state ->
-            // TODO: just log it, interaction must be in homework
-            println(state)
+
+        viewLifecycleOwner.lifecycle.coroutineScope.launchWhenCreated {
+            adapter.loadStateFlow.collectLatest {
+                binding.swiperefresh.isRefreshing =
+                    it.refresh is LoadState.Loading ||
+                            it.prepend is LoadState.Loading ||
+                            it.append is LoadState.Loading
+            }
+        }
+
+//        viewLifecycleOwner.lifecycle.coroutineScope.launchWhenCreated {
+//            appAuth.authStateFlow.collectLatest {
+//                adapter.refresh()
+//            }
+//        }
+
+        authViewModel.data.observe(viewLifecycleOwner) {
+            adapter.refresh()
         }
 
         binding.swiperefresh.setOnRefreshListener {
-            viewModel.refreshPosts()
+           adapter.refresh()
         }
 
         binding.fab.setOnClickListener {

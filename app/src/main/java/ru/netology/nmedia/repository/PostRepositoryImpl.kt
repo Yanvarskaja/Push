@@ -1,6 +1,8 @@
 package ru.netology.nmedia.repository
 
 import androidx.lifecycle.*
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -22,15 +24,16 @@ import javax.inject.Inject
 
 class PostRepositoryImpl @Inject constructor(
     private val dao: PostDao,
-    private val api: ApiService
+    private val apiService: ApiService
     ) : PostRepository {
-    override val data = dao.getAll()
-        .map(List<PostEntity>::toDto)
-        .flowOn(Dispatchers.Default)
+    override val data = Pager(
+        config = PagingConfig(pageSize = 5, enablePlaceholders = false),
+        pagingSourceFactory = { PostPagingSource(apiService) }
+    ).flow
 
     override suspend fun getAll() {
         try {
-            val response = api.getAll()
+            val response = apiService.getAll()
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -47,7 +50,7 @@ class PostRepositoryImpl @Inject constructor(
     override fun getNewerCount(id: Long): Flow<Int> = flow {
         while (true) {
             delay(120_000L)
-            val response = api.getNewer(id)
+            val response = apiService.getNewer(id)
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -62,7 +65,7 @@ class PostRepositoryImpl @Inject constructor(
 
     override suspend fun save(post: Post) {
         try {
-            val response = api.save(post)
+            val response = apiService.save(post)
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -105,7 +108,7 @@ class PostRepositoryImpl @Inject constructor(
                 "file", upload.file.name, upload.file.asRequestBody()
             )
 
-            val response = api.upload(media)
+            val response = apiService.upload(media)
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }

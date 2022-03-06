@@ -3,7 +3,11 @@ package ru.netology.nmedia.viewmodel
 import android.net.Uri
 import androidx.core.net.toFile
 import androidx.lifecycle.*
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -37,27 +41,27 @@ class PostViewModel @Inject constructor(
     private val appAuth: AppAuth
 ) : ViewModel() {
 
-    val data: LiveData<FeedModel> = appAuth
-        .authStateFlow
-        .flatMapLatest { (myId, _) ->
-            repository.data
-                .map { posts ->
-                    FeedModel(
-                        posts.map { it.copy(ownedByMe = it.authorId == myId) },
-                        posts.isEmpty()
-                    )
-                }
-        }.asLiveData(Dispatchers.Default)
+    private val cached = repository.data.cachedIn(viewModelScope)
+
+//    val data: Flow<PagingData<Post>> = appAuth
+//        .authStateFlow
+//        .flatMapLatest { (myId, _) ->
+//            cached
+//                .map { posts ->
+//                        posts.map { it.copy(ownedByMe = it.authorId == myId) }
+//                }
+//        }
+
+   val data: Flow<PagingData<Post>> = cached
+//        appAuth
+//        .authStateFlow
+//        .flatMapLatest {
+//            repository.data.cachedIn(viewModelScope)
+//        }
 
     private val _dataState = MutableLiveData<FeedModelState>()
     val dataState: LiveData<FeedModelState>
         get() = _dataState
-
-    val newerCount: LiveData<Int> = data.switchMap {
-        repository.getNewerCount(it.posts.firstOrNull()?.id ?: 0L)
-            .catch { e -> e.printStackTrace() }
-            .asLiveData(Dispatchers.Default)
-    }
 
     private val edited = MutableLiveData(empty)
     private val _postCreated = SingleLiveEvent<Unit>()
@@ -82,15 +86,7 @@ class PostViewModel @Inject constructor(
         }
     }
 
-    fun refreshPosts() = viewModelScope.launch {
-        try {
-            _dataState.value = FeedModelState(refreshing = true)
-            repository.getAll()
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value = FeedModelState(error = true)
-        }
-    }
+
 
     fun save() {
         edited.value?.let {
