@@ -90,15 +90,15 @@ class FeedFragment : Fragment() {
             }
         }
 
-//        viewLifecycleOwner.lifecycle.coroutineScope.launchWhenCreated {
-//            appAuth.authStateFlow.collectLatest {
-//                adapter.refresh()
-//            }
-//        }
-
-        authViewModel.data.observe(viewLifecycleOwner) {
-            adapter.refresh()
+        viewLifecycleOwner.lifecycle.coroutineScope.launchWhenCreated {
+            appAuth.authStateFlow.collectLatest {
+                adapter.refresh()
+            }
         }
+
+//        authViewModel.data.observe(viewLifecycleOwner) {
+//            adapter.refresh()
+//        }
 
         binding.swiperefresh.setOnRefreshListener {
            adapter.refresh()
